@@ -13,3 +13,8 @@
 7. Запустите Ngrok htpp на порту 9000. Сделайте его скриншот и добавьте в README.md
 
 Ответ:
+
+6. Сделайте скриншот файлов которые нашли внутри контейнера и добавьте в README.md
+![Alt text](/screenshots/task1_step6.png)
+7. Запустите Ngrok htpp на порту 9000. Сделайте его скриншот и добавьте в README.md
+![Alt text](/screenshots/task1_step7.png)
