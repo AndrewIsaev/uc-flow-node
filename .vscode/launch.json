@@ -11,9 +11,9 @@
       },
       "console": "integratedTerminal",
       "args": [
-        "node.service",
+        "nodes.testnode.action.node.component",
         "-c",
-        "node/config.yaml"
+        "nodes/testnode/action/node/config.yaml"
       ]
     }
   ]
