@@ -8,9 +8,9 @@ from uc_flow_nodes.views import execute
 
 from uc_flow_schemas.flow import RunState
 from uc_http_requester.requester import Request
-from nodes.testnode.action.node.provider.testnode import Authorization, Customer
+from nodes.testnode.action.node.provider.testnode import Authorization, Table
 
-from nodes.testnode.action.node.schemas.enums import Action
+from nodes.testnode.action.node.schemas.enums import Action, Operation
 
 
 class View(execute.Execute):
@@ -19,42 +19,44 @@ class View(execute.Execute):
             action = json.node.data.properties["action"]
             match action:
                 case Action.authorization:
-                    # url = f"https://{crm_host}/v2api/auth/login"
                     auth: Authorization = Authorization(
-                        host=json.node.data.properties["crm_host"],
-                        email=json.node.data.properties["email"],
-                        api_key=json.node.data.properties["api_key"],
-                        office_id=json.node.data.properties["office_id"]
+                        # url=json.node.data.properties["auth_data"]["auth_uri"],
+                        private_key_id=json.node.data.properties["auth_data"]["private_key_id"],
+                        private_key=json.node.data.properties["auth_data"]["private_key"],
+                        email=json.node.data.properties["auth_data"]["client_email"],
                     )
 
                     data = auth.get_request()
                     result = await data.execute()
 
-                    token = result.json().get("token")
+                    token = result.json().get("access_token")
                     await json.save_result({
                         "result": {
-                            "token": token,
-                            "host": auth.host,
-                            "office_id": auth.office_id
+                            "access_token": token,
                         }
                     })
                     json.state = RunState.complete
-                case Action.api:
+                case Action.g_sheets:
+                    api_action = json.node.data.properties["g_sheet_action"]
+                    match api_action:
+                        case Operation.create_table:
+                            table_name = json.node.data.properties["table_name"]
+                            access_token = json.node.data.properties["access_token"]
+                            table: Table = Table(
+                                access_token=access_token,
+                                title=table_name,
+                            )
 
-                    auth_data = json.node.data.properties["auth_data"]
-                    filters = json.node.data.properties["parameters"]
-
-                    customer: Customer = Customer(
-                        **auth_data,
-                        params=filters,
-                    )
-
-                    data = customer.get_request()
+                    data = table.create_table()
                     result = await data.execute()
 
-                    await json.save_result({
-                        "result": result.json(),
-                    })
+                    await json.save_result(
+                        {
+                            "result": {
+                                "spreadsheetId": result.json().get("spreadsheetId"),
+                                    }
+                        }
+                    )
                     json.state = RunState.complete
         except Exception as e:
             self.log.warning(f"Error {e}")
