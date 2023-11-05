@@ -1,4 +1,3 @@
-from uc_flow_nodes.component import NodeComponent
 from uc_flow_nodes.component import Routes as NodeRoutes
 from uc_flow_nodes.service import NodeService
 

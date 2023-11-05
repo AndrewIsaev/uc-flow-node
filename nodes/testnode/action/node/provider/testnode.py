@@ -1,32 +1,13 @@
 import json as js
 import time
-from abc import abstractmethod
 from typing import Any
 from urllib.parse import urljoin
 
 import jwt
 from pydantic import BaseModel
-from uc_flow_nodes.views import execute
 from uc_http_requester.requester import Request
 
-
-class AbstractModel(BaseModel):
-    host: str
-    office_id: int
-    api: str = "v2api"
-    path: str
-
-    @abstractmethod
-    def get_url(self):
-        pass
-
-    @abstractmethod
-    def _get_request_params(self):
-        pass
-
-    @abstractmethod
-    def get_request(self):
-        pass
+BASE_URL: str = "https://sheets.googleapis.com/v4/spreadsheets"
 
 
 class Authorization(BaseModel):
@@ -37,14 +18,14 @@ class Authorization(BaseModel):
     private_key: str
 
     def get_url(self) -> str:
-        base_url = f"https://{self.host}"
-        path_url = ("/").join([self.api, self.path])
+        base_url: str = f"https://{self.host}"
+        path_url: str = "/".join([self.api, self.path])
         return urljoin(base_url, path_url)
 
     def get_jwt_token(self):
-        iat = time.time()
-        exp = iat + 3600
-        payload = {
+        iat: float = time.time()
+        exp: float = iat + 3600
+        payload: dict[str, Any] = {
             "iss": self.email,
             "sub": self.email,
             "scope": "https://www.googleapis.com/auth/spreadsheets",
@@ -52,16 +33,16 @@ class Authorization(BaseModel):
             "iat": iat,
             "exp": exp,
         }
-        additional_headers = {"kid": self.private_key_id}
-        signed_jwt = jwt.encode(
+        additional_headers: dict[str, str] = {"kid": self.private_key_id}
+        signed_jwt: str = jwt.encode(
             payload, self.private_key, headers=additional_headers, algorithm="RS256"
         )
 
         return signed_jwt
 
     def _get_request_params(self) -> dict:
-        a = self.get_jwt_token()
-        res = {"grant_type": self.grant_type, "assertion": a}
+        a: str = self.get_jwt_token()
+        res: dict[str, str] = {"grant_type": self.grant_type, "assertion": a}
         return res
 
     def get_request(self) -> Request:
@@ -74,23 +55,85 @@ class Authorization(BaseModel):
 
 class Table(BaseModel):
     access_token: str
-    title: str
-    url: str = "https://sheets.googleapis.com/v4/spreadsheets"
-
-    def get_url(self) -> str:
-        base_url = f"https://{self.host}"
-        path_url = ("/").join([self.api, str(self.office_id), self.path])
-        return urljoin(base_url, path_url)
+    sheet_name: str
 
     def _get_request_params(self) -> dict:
-        res = {"properties": {"title": self.title}}
+        res: dict[str, dict[str, str]] = {"properties": {"title": self.sheet_name}}
         return res
 
     def create_table(self) -> Request:
-        params = self._get_request_params()
+        params: dict = self._get_request_params()
         return Request(
-            url=self.url,
+            url=BASE_URL,
             method=Request.Method.post,
+            json=js.dumps(params),
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+
+
+class Sheet(BaseModel):
+    access_token: str
+    table_id: str
+    sheet_name: str
+    query_params: str = "batchUpdate"
+
+    def get_url(self) -> str:
+        base_url: str = ("/").join([BASE_URL, self.table_id])
+        return (":").join([base_url, self.query_params])
+
+    def _get_request_params(self) -> dict:
+        res: dict[str, list[dict[str, dict[str, dict[str, str]]]]] = {
+            "requests": [{"addSheet": {"properties": {"title": self.sheet_name}}}]
+        }
+        return res
+
+    def create_sheet(self) -> Request:
+        params: dict = self._get_request_params()
+        return Request(
+            url=self.get_url(),
+            method=Request.Method.post,
+            json=js.dumps(params),
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+
+
+class Value(BaseModel):
+    table_id: str
+    access_token: str
+    sheet_name: str
+    range: str
+    value: dict | None
+    path: str = "values"
+    value_input_option: str = "valueInputOption=USER_ENTERED"
+
+    def get_url(self, method) -> str | None:
+        base_url: str = ("/").join([BASE_URL, self.table_id, self.path])
+        url: str = ("/").join([base_url, ("!").join([self.sheet_name, self.range])])
+        if method == "get":
+            return url
+        if method == "put":
+            return ("?").join([url, self.value_input_option])
+
+    def get_values(self) -> Request:
+        return Request(
+            url=self.get_url("get"),
+            method=Request.Method.get,
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+
+    def _get_request_params(self) -> dict:
+        res: dict[str, Any] = {
+            "range": f"{self.sheet_name}!{self.range}",
+            "majorDimension": "ROWS",
+            "values": self.value["values"],
+        }
+        return res
+
+    def add_values(self) -> Request:
+        params: dict = self._get_request_params()
+        return Request(
+            url=self.get_url("put"),
+            method=Request.Method.put,
             json=js.dumps(params),
             headers={"Authorization": f"Bearer {self.access_token}"},
         )

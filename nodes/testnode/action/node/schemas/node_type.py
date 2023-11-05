@@ -1,20 +1,13 @@
 from typing import List
 
 from uc_flow_schemas import flow
-from uc_flow_schemas.flow import Defaults, DisplayOptions
-from uc_flow_schemas.flow import NodeType as BaseNodeType
-from uc_flow_schemas.flow import OptionValue, Property
+from uc_flow_schemas.flow import DisplayOptions, OptionValue, Property
 
-from nodes.testnode.action.node.schemas.enums import (
-    Action,
-    Operation,
-    Parameters,
-    Resource,
-)
+from nodes.testnode.action.node.schemas.enums import Action, Operation
 
 
 class NodeType(flow.NodeType):
-    id: str = "75f37521-7c4d-4acc-90bd-bd3ac3883096"
+    id: str = "d1f7c623-0da3-4283-b242-df7217de2bcb"
     type: flow.NodeType.Type = flow.NodeType.Type.action
     name: str = "g_sheet"
     displayName: str = "GoogleSheetNode"
@@ -75,11 +68,11 @@ class NodeType(flow.NodeType):
                     value=Operation.add_sheet,
                     description="Add sheet to table",
                 ),
-                # OptionValue(
-                #     name="Write to cell",
-                #     value=Operation.write_to_cell,
-                #     description="Write to cell",
-                # ),
+                OptionValue(
+                    name="Write to cell",
+                    value=Operation.write_to_cell,
+                    description="Write to cell",
+                ),
                 OptionValue(
                     name="Get cell value",
                     value=Operation.get_cell_value,
@@ -112,6 +105,75 @@ class NodeType(flow.NodeType):
                     ],
                     "g_sheet_action": [
                         Operation.create_table,
+                    ],
+                },
+            ),
+        ),
+        Property(
+            displayName="Spreadsheet Id",
+            name="spreadsheet_id",
+            type=Property.Type.STRING,
+            noDataExpression=True,
+            displayOptions=DisplayOptions(
+                show={
+                    "action": [
+                        Action.g_sheets,
+                    ],
+                    "g_sheet_action": [
+                        Operation.add_sheet,
+                        Operation.get_cell_value,
+                        Operation.write_to_cell,
+                    ],
+                },
+            ),
+        ),
+        Property(
+            displayName="Sheet name",
+            name="sheet_name",
+            type=Property.Type.STRING,
+            noDataExpression=True,
+            displayOptions=DisplayOptions(
+                show={
+                    "action": [
+                        Action.g_sheets,
+                    ],
+                    "g_sheet_action": [
+                        Operation.add_sheet,
+                        Operation.get_cell_value,
+                        Operation.write_to_cell,
+                    ],
+                },
+            ),
+        ),
+        Property(
+            displayName="Range",
+            name="range",
+            type=Property.Type.STRING,
+            noDataExpression=True,
+            displayOptions=DisplayOptions(
+                show={
+                    "action": [
+                        Action.g_sheets,
+                    ],
+                    "g_sheet_action": [
+                        Operation.get_cell_value,
+                        Operation.write_to_cell,
+                    ],
+                },
+            ),
+        ),
+        Property(
+            displayName="Value",
+            name="user_value",
+            type=Property.Type.JSON,
+            noDataExpression=True,
+            displayOptions=DisplayOptions(
+                show={
+                    "action": [
+                        Action.g_sheets,
+                    ],
+                    "g_sheet_action": [
+                        Operation.write_to_cell,
                     ],
                 },
             ),
